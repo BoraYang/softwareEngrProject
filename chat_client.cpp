@@ -16,6 +16,7 @@
 #include "chat_message.hpp"
 
 using boost::asio::ip::tcp;
+using namespace std;
 
 typedef std::deque<chat_message> chat_message_queue;
 
@@ -39,6 +40,7 @@ public:
           write_msgs_.push_back(msg);
           if (!write_in_progress)
           {
+            // 나한테만 보임
             do_write();
           }
         });
@@ -152,6 +154,7 @@ int main(int argc, char* argv[])
       msg.body_length(std::strlen(line));
       std::memcpy(msg.body(), line, msg.body_length());
       msg.encode_header();
+      msg.encode_crc();
       c.write(msg);
     }
 
@@ -165,4 +168,3 @@ int main(int argc, char* argv[])
 
   return 0;
 }
-

@@ -14,7 +14,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
-
+#include <boost/crc.hpp>
 class chat_message
 {
 public:
@@ -79,11 +79,27 @@ public:
   void encode_header()
   {
     char header[header_length + 1] = "";
-    std::sprintf(header, "%4ld", body_length_);
+    std::sprintf(header, "%4d", body_length_);
     std::memcpy(data_, header, header_length);
   }
 
+  void encode_crc(){
+    boost::crc_32_type crc;
+    crc.process_bytes(data_,sizeof(char)*header_length);
+    printf("crc : %08x" , crc.checksum());
+  }
+
+  void print_data_hex(){
+    int i = 0;
+
+    for(;i <header_length + max_body_length ; ++i){
+      printf("%02x " , data_[i]);
+    }
+    printf("\n");   
+  }
+
 private:
+  
   char data_[header_length + max_body_length];
   std::size_t body_length_;
 };

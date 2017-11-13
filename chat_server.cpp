@@ -19,6 +19,9 @@
 #include "chat_message.hpp"
 
 using boost::asio::ip::tcp;
+using namespace std;
+
+int number = 0;
 
 //----------------------------------------------------------------------
 
@@ -75,9 +78,11 @@ class chat_session
     public std::enable_shared_from_this<chat_session>
 {
 public:
-  chat_session(tcp::socket socket, chat_room& room)
-    : socket_(std::move(socket)),
+  chat_session(tcp::socket socket, chat_room& room,int _id)
+    : id(_id),
+      socket_(std::move(socket)),
       room_(room)
+      
   {
   }
 
@@ -125,7 +130,24 @@ private:
         {
           if (!ec)
           {
+            std::cout<< "recv_msg = CRC : ";
+            read_msg_.encode_crc();
+            std::string sid = std::to_string(this->id);
+            sid += ": ";
+            sid += read_msg_.body();
+            std::cout<< "| DATA : ";
+            std::cout<< read_msg_.body();
+            std::cout<< " | from: " << this->id <<std::endl;
+
+            std::memset(read_msg_.data() , 0 , sizeof(char)*(chat_message::header_length+chat_message::max_body_length));
+            read_msg_.body_length(sid.length());
+            std::memcpy(read_msg_.body(), sid.c_str(), read_msg_.body_length());
+            read_msg_.encode_header();
+
             room_.deliver(read_msg_);
+            
+            std::memset(read_msg_.data() , 0 , sizeof(char)*(chat_message::header_length+chat_message::max_body_length));
+            
             do_read_header();
           }
           else
@@ -157,7 +179,7 @@ private:
           }
         });
   }
-
+  int id;
   tcp::socket socket_;
   chat_room& room_;
   chat_message read_msg_;
@@ -185,9 +207,8 @@ private:
         {
           if (!ec)
           {
-            std::make_shared<chat_session>(std::move(socket_), room_)->start();
+            std::make_shared<chat_session>(std::move(socket_), room_,number++)->start();
           }
-
           do_accept();
         });
   }
@@ -227,4 +248,3 @@ int main(int argc, char* argv[])
 
   return 0;
 }
-
